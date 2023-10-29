@@ -74,7 +74,7 @@ type statsOptions struct {
 	minimumReadDBStatsInterval time.Duration
 
 	// defaultAttributes will be set to each metrics as default.
-	defaultAttributes []attribute.KeyValue
+	defaultAttributes []metric.ObserveOption
 }
 
 type statsOptionFunc func(o *statsOptions)
