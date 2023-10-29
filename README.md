@@ -1,3 +1,5 @@
+#### This fork exists because I want to use it as I learn some stuffs about otel in golang.
+
 [![Go Reference](https://pkg.go.dev/badge/github.com/exaring/otelpgx.svg)](https://pkg.go.dev/github.com/exaring/otelpgx)
 
 # otelpgx
