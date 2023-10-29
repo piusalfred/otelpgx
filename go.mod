@@ -1,6 +1,6 @@
-module github.com/exaring/otelpgx
+module github.com/piusalfred/otelpgx
 
-go 1.18
+go 1.21
 
 require (
 	github.com/jackc/pgx/v5 v5.4.3
