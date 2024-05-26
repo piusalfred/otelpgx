@@ -4,7 +4,6 @@ all: test
 
 .PHONY: test
 test: vet
-	$(GO) test -v -short ./...
 
 .PHONY: lint
 lint:

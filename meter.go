@@ -5,32 +5,115 @@ import (
 	"sync"
 	"time"
 
+	"github.com/exaring/otelpgx/internal"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/piusalfred/otelpgx/internal"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/metric"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 )
+
+const (
+	pgxPoolAcquireCount            = "pgxpool_acquires"
+	pgxpoolAcquireDuration         = "pgxpool_acquire_duration"
+	pgxpoolAcquiredConns           = "pgxpool_acquired_conns"
+	pgxpoolCancelledAcquires       = "pgxpool_canceled_acquires"
+	pgxpoolConstructingConns       = "pgxpool_constructing_conns"
+	pgxpoolEmptyAcquire            = "pgxpool_empty_acquire"
+	pgxpoolIdleConns               = "pgxpool_idle_conns"
+	pgxpoolMaxConns                = "pgxpool_max_conns"
+	pgxpoolMaxIdleDestroyCount     = "pgxpool_max_idle_destroys"
+	pgxpoolMaxLifetimeDestroyCount = "pgxpool_max_lifetime_destroys"
+	pgxpoolNewConnsCount           = "pgxpool_new_conns"
+	pgxpoolTotalConns              = "pgxpool_total_conns"
+)
+
+// MeterOption allows for managing otelsql configuration using functional options.
+type MeterOption interface {
+	applyMeterOptions(o *Meter)
+}
+
+type Meter struct {
+	// provider sets the metric.MeterProvider. If nil, the global Provider will be used.
+	provider metric.MeterProvider
+
+	// minimumReadDBStatsInterval sets the minimum interval between calls to db.Stats(). Negative values are ignored.
+	minimumReadDBStatsInterval time.Duration
+
+	// observeOptions will be set to each metrics as default.
+	observeOptions []metric.ObserveOption
+}
+
+type MeterOptionFunc func(o *Meter)
+
+func (f MeterOptionFunc) applyMeterOptions(o *Meter) {
+	f(o)
+}
+
+// WithMeterProvider sets meter provider.
+func WithMeterProvider(p metric.MeterProvider) MeterOption {
+	return struct {
+		MeterOptionFunc
+	}{
+		MeterOptionFunc: func(o *Meter) {
+			o.provider = p
+		},
+	}
+}
+
+// WithMinimumReadDBStatsInterval sets the minimum interval between calls to db.Stats(). Negative values are ignored.
+func WithMinimumReadDBStatsInterval(interval time.Duration) MeterOption {
+	return MeterOptionFunc(func(o *Meter) {
+		o.minimumReadDBStatsInterval = interval
+	})
+}
+
+const (
+	UnitDimensionless = "1"
+	UnitBytes         = "By"
+	UnitMilliseconds  = "ms"
+)
+
+func newMeterProvider() (*sdkmetric.MeterProvider, error) {
+	metricExporter, err := stdoutmetric.New()
+	if err != nil {
+		return nil, err
+	}
+
+	meterProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter,
+			// Default is 1m. Set to 3s for demonstrative purposes.
+			sdkmetric.WithInterval(3*time.Second))),
+	)
+	return meterProvider, nil
+}
 
 // defaultMinimumReadDBStatsInterval is the default minimum interval between calls to db.Stats().
 const defaultMinimumReadDBStatsInterval = time.Second
 
 // RecordStats records database statistics for provided pgxpool.Pool at the provided interval.
-func RecordStats(db *pgxpool.Pool, opts ...StatsOption) error {
-	o := statsOptions{
-		//meterProvider:              global.MeterProvider(),
-		//minimumReadDBStatsInterval: defaultMinimumReadDBStatsInterval,
-		//defaultAttributes: []attribute.KeyValue{
-		//	semconv.DBSystemPostgreSQL,
-		//},
+func RecordStats(db *pgxpool.Pool, opts ...MeterOption) error {
+	mp, err := newMeterProvider()
+	if err != nil {
+		return err
+	}
+	o := Meter{
+		provider:                   mp,
+		minimumReadDBStatsInterval: defaultMinimumReadDBStatsInterval,
+		observeOptions: []metric.ObserveOption{
+			metric.WithAttributes(
+				semconv.DBSystemPostgreSQL,
+			),
+		},
 	}
 
 	for _, opt := range opts {
-		opt.applyStatsOptions(&o)
+		opt.applyMeterOptions(&o)
 	}
 
-	meter := o.meterProvider.Meter(internal.MeterName)
+	meter := o.provider.Meter(internal.MeterName)
 
-	return recordStats(meter, db, o.minimumReadDBStatsInterval, o.defaultAttributes...)
-
+	return recordStats(meter, db, o.minimumReadDBStatsInterval, o.observeOptions...)
 }
 
 func recordStats(
@@ -203,13 +286,3 @@ func recordStats(
 
 	return err
 }
-
-//  - Use `"1"` instead of `unit.Dimensionless`
-//  - Use `"By"` instead of `unit.Bytes`
-//  - Use `"ms"` instead of `unit.Milliseconds`
-
-const (
-	UnitDimensionless string = "1"
-	UnitBytes         string = "By"
-	UnitMilliseconds  string = "ms"
-)
