@@ -4,7 +4,6 @@ import (
 	"log/slog"
 
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
-	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 
@@ -35,22 +34,21 @@ func NewLoggerProvider(cfg LoggerProviderConfig, exporter log.Exporter) (*Logger
 		log.WithResource(&resource.Resource{}),
 	)
 
-	instrumentationScope := instrumentation.Scope{
-		Name:      cfg.ScopeName,
-		Version:   cfg.ScopeVersion,
-		SchemaURL: cfg.ScopeSchemaURL,
-	}
+	//instrumentationScope := instrumentation.Scope{
+	//	Name:      cfg.ScopeName,
+	//	Version:   cfg.ScopeVersion,
+	//	SchemaURL: cfg.ScopeSchemaURL,
+	//}
 
 	opts := []otelslog.Option{
-		otelslog.WithInstrumentationScope(instrumentationScope),
 		otelslog.WithLoggerProvider(loggerProvider),
 	}
 
 	logger := otelslog.NewLogger(
-		opts...,
+		"logger", opts...,
 	)
 
-	handler := otelslog.NewHandler(opts...)
+	handler := otelslog.NewHandler("logger", opts...)
 
 	return &LoggerProvider{
 		Provider: loggerProvider,
