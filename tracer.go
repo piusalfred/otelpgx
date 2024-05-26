@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	tracerName = "github.com/exaring/otelpgx"
+	tracerName = "github.com/piusalfred/otelpgx"
 
 	sqlOperationUnknown = "UNKNOWN"
 )

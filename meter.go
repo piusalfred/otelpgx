@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/exaring/otelpgx/internal"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/piusalfred/otelpgx/internal"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
