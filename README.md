@@ -1,5 +1,3 @@
-#### This fork exists because I want to use it as I learn some stuffs about otel in golang.
-
 [![Go Reference](https://pkg.go.dev/badge/github.com/exaring/otelpgx.svg)](https://pkg.go.dev/github.com/exaring/otelpgx)
 
 # otelpgx
@@ -36,7 +34,7 @@ if err != nil {
 
 cfg.ConnConfig.Tracer = otelpgx.NewTracer()
 
-conn, err := pgxpool.NewWithConfig(ctx, cfg)
+conn, err := pgxpool.NewConfig(ctx, cfg)
 if err != nil {
     return nil, fmt.Errorf("connect to database: %w", err)
 }

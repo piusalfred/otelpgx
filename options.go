@@ -1,10 +1,7 @@
 package otelpgx
 
 import (
-	"time"
-
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -45,21 +42,6 @@ func WithTrimSQLInSpanName() Option {
 	})
 }
 
-// SpanNameFunc is a function that can be used to generate a span name for a
-// SQL. The function will be called with the SQL statement as a parameter.
-type SpanNameFunc func(stmt string) string
-
-// WithSpanNameFunc will use the provided function to generate the span name for
-// a SQL statement. The function will be called with the SQL statement as a
-// parameter.
-//
-// By default, the whole SQL statement is used as a span name, where applicable.
-func WithSpanNameFunc(fn SpanNameFunc) Option {
-	return optionFunc(func(cfg *tracerConfig) {
-		cfg.spanNameFunc = fn
-	})
-}
-
 // WithDisableSQLStatementInAttributes will disable logging the SQL statement in the span's
 // attributes.
 func WithDisableSQLStatementInAttributes() Option {
@@ -73,45 +55,5 @@ func WithDisableSQLStatementInAttributes() Option {
 func WithIncludeQueryParameters() Option {
 	return optionFunc(func(cfg *tracerConfig) {
 		cfg.includeParams = true
-	})
-}
-
-// StatsOption allows for managing otelsql configuration using functional options.
-type StatsOption interface {
-	applyStatsOptions(o *statsOptions)
-}
-
-type statsOptions struct {
-	// meterProvider sets the metric.MeterProvider. If nil, the global Provider will be used.
-	meterProvider metric.MeterProvider
-
-	// minimumReadDBStatsInterval sets the minimum interval between calls to db.Stats(). Negative values are ignored.
-	minimumReadDBStatsInterval time.Duration
-
-	// defaultAttributes will be set to each metrics as default.
-	defaultAttributes []metric.ObserveOption
-}
-
-type statsOptionFunc func(o *statsOptions)
-
-func (f statsOptionFunc) applyStatsOptions(o *statsOptions) {
-	f(o)
-}
-
-// WithMeterProvider sets meter provider.
-func WithMeterProvider(p metric.MeterProvider) StatsOption {
-	return struct {
-		statsOptionFunc
-	}{
-		statsOptionFunc: func(o *statsOptions) {
-			o.meterProvider = p
-		},
-	}
-}
-
-// WithMinimumReadDBStatsInterval sets the minimum interval between calls to db.Stats(). Negative values are ignored.
-func WithMinimumReadDBStatsInterval(interval time.Duration) StatsOption {
-	return statsOptionFunc(func(o *statsOptions) {
-		o.minimumReadDBStatsInterval = interval
 	})
 }
