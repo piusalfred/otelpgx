@@ -28,9 +28,13 @@ if err != nil {
 
 cfg.ConnConfig.Tracer = otelpgx.NewTracer()
 
-conn, err := pgxpool.NewWithConfig(ctx, cfg)
+conn, err := pgxpool.NewConfig(ctx, cfg)
 if err != nil {
     return nil, fmt.Errorf("connect to database: %w", err)
+}
+
+if err := otelpgx.RecordStats(conn); err != nil {
+    return nil, fmt.Errorf("unable to record database stats: %w", err)
 }
 ```
 
